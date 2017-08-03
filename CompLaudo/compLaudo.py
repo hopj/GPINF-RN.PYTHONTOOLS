@@ -8,7 +8,7 @@ import datetime
 THUMBS_X = 5
 THUMBS_Y = 5
 
-####
+#### testando 1,2,3.... - comentário para teste das funções do github
 
 def getNumFrames(fileName):
     retval = 0
