@@ -8,6 +8,8 @@ import datetime
 THUMBS_X = 5
 THUMBS_Y = 5
 
+####
+
 def getNumFrames(fileName):
     retval = 0
     print ("Recuperando nframes de: "+fileName, end='')
