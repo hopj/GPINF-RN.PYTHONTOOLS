@@ -1,0 +1,2 @@
+# GPINF-RN.PYTHONTOOLS
+Scripts pyhton do GPINF-RN. (PYTHONTOOLS)
