@@ -1,6 +1,6 @@
-###-------------------------------------------------------------------------------------------------------------
 '''
-compLaudo v0.0.2c
+-------------------------------------------------------------------------------------------------------------
+compLaudo v0.0.2c1
         - função geraThumbs implementada e testada.
         
 compLaudo v0.0.2d
@@ -15,9 +15,10 @@ compLaudo v0.0.3a
             - Apagar a pasta origem e renomear a pasta equivalente com os thumbs
             - Mapear todas as páginas html
             - Modificar os links de videos dos html mapeados para os thumbs 
-            
+                - O UFED utiliza arquivos texto para os chats. É necessário corrigir estes arquivos texto tb.
+
+-------------------------------------------------------------------------------------------------------------
 '''
-###-------------------------------------------------------------------------------------------------------------
 
 import ffmpy
 import glob
@@ -28,57 +29,138 @@ import datetime
 import shutil
 from bs4 import BeautifulSoup
 from shutil import copy2
+from _operator import contains
 
-THUMBS_X = 5
-THUMBS_Y = 5
+class compLaudo:
+    THUMBS_X = 5
+    THUMBS_Y = 5
+    VIDEO_TYPES = ["MP4", "3GP", "MOV"]
+    HTML_TYPES = ["HTML", "HTM"]
 
-VIDEO_TYPES = ["MP4", "3GP", "MOV"] 
+    DIR_LAUDO = ""
+    __ALLFILES = []
+    PROCESSED_FILES = []
+    PASTAS_VIDEO = []
+    HTML_PAGES = []
 
-def getNumFrames(fileName):
-    retval = 0
-    print ("Recuperando nframes de: "+fileName, end='')
-    p = subprocess.Popen('ffprobe -show_streams "'+fileName+'"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-    for line in p.stdout:
-        fields = line.decode().split('=')
-        if fields[0] == 'nb_frames':
-            retval = int (fields[1])
-            break
-#    p.wait()
-    print (" => "+str(retval))
-    return retval
+    PROCESSED_FILES_TMP = ["..\files\Video\0011597f-62ee-4b34-8d68-51f42dcd9449.mp4", "..\files\Video\0011597f-62ee-4b34-8d68-51f42dcd9449.mp4", "0074fad0-84f2-4b3c-9d46-6a3997b69167.mp4"] 
 
-def getExt(arq):
-    indext = arq.upper().rfind(".")
-    ext = arq[indext+1:].upper()
-    return ext
+    def __init__(self, dir):
+        self.DIR_LAUDO = dir
+        self.__ALLFILES = [file for file in glob.glob(self.DIR_LAUDO+"/**", recursive=True)]
+        print(len(self.__ALLFILES))
+  
+    def getNumFrames(self, fileName):
+        retval = 0
+        print ("Recuperando nframes de: "+fileName, end='')
+        p = subprocess.Popen('ffprobe -show_streams "'+fileName+'"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    
+        for line in p.stdout:
+            fields = line.decode().split('=')
+            if fields[0] == 'nb_frames':
+                retval = int (fields[1])
+                break
+    #    p.wait()
+        print (" => "+str(retval))
+        return retval
+    
+    def getExt(self, arq):
+        indext = arq.upper().rfind(".")
+        ext = arq[indext+1:].upper()
+        return ext
+    
+    def processa_HTML_videos(self, html_page):
+        with open(html_page,"r") as f:
+            soup = BeautifulSoup(f)  
+        soup.prettify()
+    
+# 2017 08 07 - Debugar a condição abaixo. Se o href está dentro de algum dos itens de processed_files então executa...
+        for tag in soup.find_all("a"):
+            print (tag['href']) 
+            if any(tag['href'] in s for s in self.PROCESSED_FILES_TMP):
+                tag['href'] = str(tag['href']) + "_thumbs.jpg"
+                    
+        with open(html_page+"_new.html","w") as f:
+            f.write(str(soup))  
+    
+    def geraThumbsPasta(self, dirOrigem, dirDestino):
+#        files = [file for file in glob.glob(dirOrigem+"/**", recursive=True)]
+        files = [file for file in glob.glob(dirOrigem+"/*")]
+        posDP = dirOrigem.find(":")
+        if posDP < 0:
+            posDP = 0
+        print ("Convertendo "+str(len(files))+" arquivos - Iniciado em:"+str(datetime.datetime.now()))
+        nfile = 1
+        for fileName in files:
+            newName = fileName.replace(dirOrigem, dirDestino)
+            os.makedirs(os.path.dirname(newName), exist_ok=True)
+            newNameTmp = newName+"_thumbs.jpg"
+            processed = False    
+            print ("Convertendo de: "+fileName+" para "+newNameTmp)
+            try: 
+                ext = self.getExt(fileName)
+                if os.path.isfile(fileName) and  ext in self.VIDEO_TYPES:
+                    nFrames = self.getNumFrames(fileName)
+                    if nFrames > (self.THUMBS_X * self.THUMBS_Y):
+                        outputpars = '-loglevel panic -y -vf "select=not(mod(n\,'+str(nFrames // 25) 
+                        outputpars+= ')),scale=320:240,tile='+str(self.THUMBS_X)+'+'+str(self.THUMBS_Y)+'" -frames 1'
+                        ff = ffmpy.FFmpeg(inputs={fileName:None}, 
+                                  outputs={newNameTmp: outputpars})
+                        ff.run()
+                        processed = True
+                        self.PROCESSED_FILES.append(fileName)
+            except:
+                print ("Erro no processamento de: "+str(sys.exc_info()))
+            
+            print (str(nfile)+"/"+str(len(files)), end=' ')
+            if processed:
+                size = os.stat(fileName).st_size
+                newsize = os.stat(newNameTmp).st_size
+                print (fileName+": "+str(size)+
+                       " -> "+str(newsize)+ " "+newNameTmp, end='') 
+            elif os.path.isfile(fileName) :
+                copy2(fileName,newName)
+    #            os.replace(fileName,newName)   
+            
+        print()
+        print ("Arquivos convertidos. Finalizado em:"+str(datetime.datetime.now()))
 
-def processa_HTML_videos(html_page):
-    with open(html_page,"r") as f:
-        soup = BeautifulSoup(f)  
-    soup.prettify()
+    def process(self):
+        # bkpLaudo - faz a cópia de backup do laudo.
+        for arquivo in self.__ALLFILES:
+            ext = self.getExt(arquivo)
+            if os.path.isfile(arquivo):
+            
+                if ext in self.VIDEO_TYPES:
+                    path = os.path.dirname(os.path.abspath(arquivo))                     
+                    if path  not in self.PASTAS_VIDEO: 
+                        self.PASTAS_VIDEO.append(path)                                        
 
-    for tag in soup.find_all("a"):
-        if getExt(tag['href']) in VIDEO_TYPES: 
-            tag['href'] = str(tag['href']) + "_thumbs.jpg"
-                
-    with open(html_page+"_processada.html","w") as f:
-        f.write(str(soup))  
+                elif ext in self.HTML_TYPES:
+                    self.HTML_PAGES.append(arquivo)
 
-def geraThumbs(dirOrigem, dirDestino):
-    files = [file for file in glob.glob(dirOrigem+"/**", recursive=True)]
-    posDP = dirOrigem.find(":")
-    if posDP < 0:
-        posDP = 0
+#Comentado para inicio dos testes da V0.0.3a
+#        for pasta in self.PASTAS_VIDEO:
+#            pasta_new = pasta + "_new"
+#            self.geraThumbsPasta(pasta, pasta_new)
 
-    print ("Convertendo "+str(len(files))+" arquivos - Iniciado em:"+str(datetime.datetime.now()))
-    nfile = 1
-    for fileName in files:
-        newName = fileName.replace(dirOrigem, dirDestino)
-        os.makedirs(os.path.dirname(newName), exist_ok=True)
-        newNameTmp = newName+"_thumbs.jpg"
-        processed = False    
-        print ("Convertendo de: "+fileName+" para "+newNameTmp)
+        for pag in self.HTML_PAGES:
+            self.processa_HTML_videos(pag)
+
+                    
+if len(sys.argv) < 2:
+    print ("uso: python "+sys.argv[0]+" dir_entrada dir_saida")
+    sys.exit(1)
+
+cl = compLaudo(sys.argv[1])
+cl.process()
+
+#geraThumbs(sys.argv[1], sys.argv[2])
+#processa_HTML_videos(sys.argv[3])
+
+'''
+def geraThumb(self, filename, newname): #- i/nt
         try: 
             ext = getExt(fileName)
             if os.path.isfile(fileName) and  ext in VIDEO_TYPES:
@@ -87,31 +169,14 @@ def geraThumbs(dirOrigem, dirDestino):
                     outputpars = '-loglevel panic -y -vf "select=not(mod(n\,'+str(nFrames // 25) 
                     outputpars+= ')),scale=320:240,tile='+str(THUMBS_X)+'+'+str(THUMBS_Y)+'" -frames 1'
                     ff = ffmpy.FFmpeg(inputs={fileName:None}, 
-                              outputs={newNameTmp: outputpars})
+                              outputs={newname: outputpars})
                     ff.run()
                     processed = True
         except:
             print ("Erro no processamento de: "+str(sys.exc_info()))
-        
-        print (str(nfile)+"/"+str(len(files)), end=' ')
-        if processed:
-            size = os.stat(fileName).st_size
-            newsize = os.stat(newNameTmp).st_size
-            print (fileName+": "+str(size)+
-                   " -> "+str(newsize)+ " "+newNameTmp, end='') 
-        elif os.path.isfile(fileName) :
-            copy2(fileName,newName)
-#            os.replace(fileName,newName)   
-        
-    print()
-    print ("Arquivos convertidos. Finalizado em:"+str(datetime.datetime.now()))
 
-if len(sys.argv) < 4:
-    print ("uso: python "+sys.argv[0]+" dir_entrada dir_saida")
-    sys.exit(1)
+'''
 
-geraThumbs(sys.argv[1], sys.argv[2])
-processa_HTML_videos(sys.argv[3])
     
 #ffmpeg -y -i input -c:v libx264 -preset medium -b:v 555k -pass 1 -an -f mp4 /dev/null && \
 #ffmpeg -i input -c:v libx264 -preset medium -b:v 555k -pass 2 -c:a libfdk_aac -b:a 128k output.mp4        
