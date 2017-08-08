@@ -13,7 +13,10 @@ compLaudo v0.0.3a
             - Para cada pasta_video, criar thumbs em pasta temporária
             - Apagar a pasta origem e renomear a pasta equivalente com os thumbs
             - Mapear todas as páginas html
-            - Modificar os links de videos dos html mapeados para os thumbs 
+            - Modificar os links de videos dos html mapeados para os thumbs
+ 
+compLaudo v0.0.3b
+        - Implementa o resize das imagens
 
 -------------------------------------------------------------------------------------------------------------
 '''
@@ -34,6 +37,7 @@ class compLaudo:
     THUMBS_Y = 5
     VIDEO_TYPES = ["MP4", "3GP", "MOV"]
     HTML_TYPES = ["HTML", "HTM"]
+    IMG_TYPES = ["JPEG", "JPG","PNG", "TIFF"]
 
     DIR_LAUDO = ""
     __ALLFILES = []
@@ -41,6 +45,7 @@ class compLaudo:
     PASTAS_VIDEO = []
     HTML_PAGES = []
     __TEMPSUFIX = {"OLD":"_old", "NEW":"_new"}
+    __IMGSUFIX = ".jpg"
 
     #PROCESSED_FILES_TMP = ["0011597f-62ee-4b34-8d68-51f42dcd9449.mp4", "0074fad0-84f2-4b3c-9d46-6a3997b69167.mp4"] 
 
@@ -123,6 +128,19 @@ class compLaudo:
         print()
         print ("Arquivos convertidos. Finalizado em:"+str(datetime.datetime.now()))
 
+    def resizeImg(self, imagem):
+        if os.stat(imagem).st_size > 500000:
+             outputPars = "-vf scale=800:-1"
+             newImg = os.path.splitext(imagem)[0]+self.__TEMPSUFIX["NEW"]+self.__IMGSUFIX 
+             try: 
+                 ff = ffmpy.FFmpeg(inputs={imagem:None}, outputs={newImg:outputPars})
+                 ff.run()
+                 os.rename(imagem, imagem+self.__TEMPSUFIX["OLD"])
+                 os.rename(newImg, os.path.splitext(imagem)[0]+self.__IMGSUFIX)
+                 os.remove(imagem+self.__TEMPSUFIX["OLD"])
+             except:
+                 print ("Erro no processamento da imagem: "+imagem+"  --  "+str(sys.exc_info()))
+                
     def process(self):
         # bkpLaudo - faz a cópia de backup do laudo.
         for arquivo in self.__ALLFILES:
@@ -134,6 +152,9 @@ class compLaudo:
                     if path  not in self.PASTAS_VIDEO: 
                         self.PASTAS_VIDEO.append(path)                                        
 
+                elif ext in self.IMG_TYPES:
+                    self.resizeImg(arquivo)
+                
                 elif ext in self.HTML_TYPES:
                     self.HTML_PAGES.append(arquivo)
 
@@ -156,30 +177,3 @@ if len(sys.argv) < 2:
 cl = compLaudo(sys.argv[1])
 cl.process()
 
-#geraThumbs(sys.argv[1], sys.argv[2])
-#processa_HTML_videos(sys.argv[3])
-
-'''
-def geraThumb(self, filename, newname): #- i/nt
-        try: 
-            ext = getExt(fileName)
-            if os.path.isfile(fileName) and  ext in VIDEO_TYPES:
-                nFrames = getNumFrames(fileName)
-                if nFrames > (THUMBS_X * THUMBS_Y):
-                    outputpars = '-loglevel panic -y -vf "select=not(mod(n\,'+str(nFrames // 25) 
-                    outputpars+= ')),scale=320:240,tile='+str(THUMBS_X)+'+'+str(THUMBS_Y)+'" -frames 1'
-                    ff = ffmpy.FFmpeg(inputs={fileName:None}, 
-                              outputs={newname: outputpars})
-                    ff.run()
-                    processed = True
-        except:
-            print ("Erro no processamento de: "+str(sys.exc_info()))
-
-'''
-
-    
-#ffmpeg -y -i input -c:v libx264 -preset medium -b:v 555k -pass 1 -an -f mp4 /dev/null && \
-#ffmpeg -i input -c:v libx264 -preset medium -b:v 555k -pass 2 -c:a libfdk_aac -b:a 128k output.mp4        
-# -s 640x480 -b:v 512k -vcodec mpeg1video -acodec copy
-#        ff = ffmpy.FFmpeg(inputs={fileName:None}, outputs={newName: "-loglevel panic -f mp4 -fs "+str(newSize)})
-#        ff = ffmpy.FFmpeg(inputs={fileName:None}, outputs={newName: "-loglevel panic -f mp4 -crf 45 "})
