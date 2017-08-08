@@ -18,6 +18,8 @@ compLaudo v0.0.3a
 compLaudo v0.0.3b
         - Implementa o resize das imagens
 
+
+compLaudo 
 -------------------------------------------------------------------------------------------------------------
 '''
 
@@ -171,7 +173,7 @@ class compLaudo:
             os.remove(pag+self.__TEMPSUFIX["OLD"])
                     
 if len(sys.argv) < 2:
-    print ("uso: python "+sys.argv[0]+" dir_entrada dir_saida")
+    print ("uso: python + diretório de entrada")
     sys.exit(1)
 
 cl = compLaudo(sys.argv[1])
