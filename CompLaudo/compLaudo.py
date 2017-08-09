@@ -18,7 +18,7 @@ compLaudo v0.0.3a
 compLaudo v0.0.3b
         - Implementa o resize das imagens
 
-compLaudo v0.0.3c (atual)
+compLaudo v0.0.3c1 (atual)
         - Criação do log
         - Correção de bug no processamento de videos pequenos (poucos k).
             . Foi adicionada condição de somente processar o video caso ele tenha um tamanho mínimo.
@@ -204,6 +204,7 @@ class compLaudo:
 if len(sys.argv) < 2:
     print ("uso: python + diretório de entrada")
     sys.exit(1)
+
 
 cl = compLaudo(sys.argv[1])
 cl.process()
