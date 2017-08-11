@@ -18,11 +18,14 @@ compLaudo v0.0.3a
 compLaudo v0.0.3b
         - Implementa o resize das imagens
 
-compLaudo v0.0.3c1 (atual)
+compLaudo v0.0.3c1 
         - Criação do log
         - Correção de bug no processamento de videos pequenos (poucos k).
             . Foi adicionada condição de somente processar o video caso ele tenha um tamanho mínimo
-        - compLaudo  --> Criar o método geraThumbs(videofile) e passar a utiliza-lo no lugar de geraThumbsPasta.
+        - compLaudo  --> Criar o método compLaudo.geraThumb(videofile) e passar a utiliza-lo no lugar de geraThumbsPasta.
+
+compLaudo v0.0.3c2
+        - Testado no Laudo gigante de 96GB. Rodou em 2 pedaços poir minha máquina deu crash no meio da execução. 
 
 compLaudo v0.0.3d (futuro)
         - LOG: escrever qual a pasta de imagens esta sendo processada
