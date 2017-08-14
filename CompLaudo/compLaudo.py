@@ -27,6 +27,9 @@ compLaudo v0.0.3c1
 compLaudo v0.0.3c2
         - Testado no Laudo gigante de 96GB. Rodou em 2 pedaços poir minha máquina deu crash no meio da execução. 
 
+compLaudo v0.0.3c3
+        - Passa a aceitar -v -h -i como argumentos de entrada como opção para processar videos, htmls e imagens. 
+
 compLaudo v0.0.3d (futuro)
         - LOG: escrever qual a pasta de imagens esta sendo processada
         - LOG: escrever "X% das imagens processadas" no log.
@@ -36,6 +39,7 @@ compLaudo v0.0.3d (futuro)
         - BUG: verificar se o novo nome da imagem já existe e se for o caso manter a extensão original.
         - BUG: As imagens que tiverem sua extensão modificada precisam ter as referências alteradas nos HTMLs.
             - Criar uma lista deste arquivos e modificar o compLaudo.processa_HTML_videos para tb corrigir as referências aos arquivos desta nova lista
+        - BUG: de o nome "parent\arquivo" coincidir os HTMLs podem ser erroneamente alterados. Isto ocorre no caso de processameno de múltiplos laudos. Corrigir lendo o caminho completo do arquivo.
 -------------------------------------------------------------------------------------------------------------
 '''
 
@@ -56,6 +60,7 @@ class compLaudo:
     VIDEO_TYPES = ["MP4", "3GP", "MOV"]
     HTML_TYPES = ["HTML", "HTM"]
     IMG_TYPES = ["JPEG", "JPG"]
+    FLAGS = {"VIDEO":"-v", "HTML":"-h", "IMAGEM":"-i"}
 
     DIR_LAUDO = ""
     __ALLFILES = []
@@ -67,6 +72,7 @@ class compLaudo:
     __TEMPSUFIX = {"OLD":"_old", "NEW":"_new"}
     __IMGSUFIX = ".jpg"
     __LOGFILE = ""
+
 
     #PROCESSED_FILES_TMP = ["0011597f-62ee-4b34-8d68-51f42dcd9449.mp4", "0074fad0-84f2-4b3c-9d46-6a3997b69167.mp4"] 
 
@@ -190,8 +196,8 @@ class compLaudo:
                  except:
                      self.__writeLog("Erro no processamento da imagem: "+videofile+"  -  "+str(sys.exc_info()))
                
-    def process(self):
-        
+    def process(self, args):
+     
         self.__writeLog("Inicio da varredura dos arquivos e seleção de: VIDEOS, IMAGENS e HTMLs")
         for arquivo in self.__ALLFILES:
             ext = os.path.splitext(arquivo)[1][1:].upper()
@@ -206,49 +212,67 @@ class compLaudo:
         self.__writeLog("Número Total de videos: "+str(len(self.VIDEO_FILES)))
         self.__writeLog("Número Total de imagens: "+str(len(self.IMG_FILES)))
 
-        self.__writeLog("############################# Inicio da geração dos thumbs dos videos ############################# ")            
-        for video in self.VIDEO_FILES:
-            try: 
-                self.geraThumb(video)
-            except:
-                self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
-                continue                            
+        if self.FLAGS["VIDEO"] in args:
+            self.__writeLog("############################# Inicio da geração dos thumbs dos videos ############################# ")            
+            for video in self.VIDEO_FILES:
+                try: 
+                    self.geraThumb(video)
+                except:
+                    self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
+                    continue                            
 
-        self.__writeLog("############################# Inicio do processamento dos arquivos HTML ############################# ")
-        for pag in self.HTML_PAGES:
-            try:
-                self.processa_HTML_videos(pag)
-                os.rename(pag, pag+self.__TEMPSUFIX["OLD"])
-                os.rename(pag+self.__TEMPSUFIX["NEW"]+".html", pag)
-                os.remove(pag+self.__TEMPSUFIX["OLD"])
-            except:
-                self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
-                continue                              
-                
-        self.__writeLog("############################# Inicio do resize das imagens ############################# ")
-        for img in self.IMG_FILES:
-            try: 
-                self.__writeLog("Fazendo resize de : "+img)
-                self.resizeImg(img)                
-            except:
-                self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
-                continue                            
+        if self.FLAGS["HTML"] in args:
+            self.__writeLog("############################# Inicio do processamento dos arquivos HTML ############################# ")
+            for pag in self.HTML_PAGES:
+                try:
+                    self.processa_HTML_videos(pag)
+                    os.rename(pag, pag+self.__TEMPSUFIX["OLD"])
+                    os.rename(pag+self.__TEMPSUFIX["NEW"]+".html", pag)
+                    os.remove(pag+self.__TEMPSUFIX["OLD"])
+                except:
+                    self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
+                    continue                              
+       
+        if self.FLAGS["IMAGEM"] in args:                
+            self.__writeLog("############################# Inicio do resize das imagens ############################# ")
+            for img in self.IMG_FILES:
+                try: 
+                    self.__writeLog("Fazendo resize de : "+img)
+                    self.resizeImg(img)                
+                except:
+                    self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
+                    continue                            
 
         self.__writeLog("Finalizado processamento de "+self.DIR_LAUDO )
-                    
+
+                              
 if len(sys.argv) < 2:
-    print ("uso: python + diretório de entrada")
+    print ("uso: python + diretório de entrada + argumentos")
     sys.exit(1)
 
 cl = compLaudo(sys.argv[1])
-cl.process()
-
-
-
-
+cl.process(sys.argv)
 
 
 '''
+
+flagvideo = ""
+flaghtml = ""
+flagimagem = ""
+                
+argumentos = []
+
+if "-v" in sys.argv:
+    argumentos.append(cl.FLAGS["VIDEO"]) 
+    
+if "-h" in sys.argv:
+    argumentos.append(cl.FLAGS["HTML"] 
+
+if "-i" in sys.argv:
+    argumentos.append(cl.FLAGS["IMAGEM"] 
+
+------------------------------------------------------
+
 str1 = "file:///F:/HAM/OneDrive/14%20-%20DESENV/TESTES/LAUDO_TESTE-micro/files/Video/0011597f-62ee-4b34-8d68-51f42dcd9449.mp4"
 arq = os.path.split(os.path.abspath(str1))[1]
 pasta = os.path.split(os.path.split(str1)[0])[1]
