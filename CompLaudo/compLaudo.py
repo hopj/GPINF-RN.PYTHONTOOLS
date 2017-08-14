@@ -28,7 +28,9 @@ compLaudo v0.0.3c2
         - Testado no Laudo gigante de 96GB. Rodou em 2 pedaços poir minha máquina deu crash no meio da execução. 
 
 compLaudo v0.0.3c3
-        - Passa a aceitar -v -h -i como argumentos de entrada como opção para processar videos, htmls e imagens. 
+        - Passa a aceitar -v -h -i como argumentos de entrada como opção para processar videos, htmls e imagens.
+        - Executável gerado.
+        -PRODUCAO: esta versão foi para produção. Instalada e testada em outra máquina.   
 
 compLaudo v0.0.3d (futuro)
         - LOG: escrever qual a pasta de imagens esta sendo processada
