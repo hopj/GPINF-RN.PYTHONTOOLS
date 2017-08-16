@@ -32,6 +32,11 @@ compLaudo v0.0.3c3
         - Executável gerado.
         -PRODUCAO: esta versão foi para produção. Instalada e testada em outra máquina.   
 
+compLaudo v0.0.3c4
+        - Passa a fazer as chamadas do ffmpeg através de subprocess.
+            - é preciso fazer todos os testes novamente.
+        - Escreve a versão do compLaudo no log. 
+
 compLaudo v0.0.3d (futuro)
         - LOG: escrever qual a pasta de imagens esta sendo processada
         - LOG: escrever "X% das imagens processadas" no log.
@@ -74,6 +79,7 @@ class compLaudo:
     __TEMPSUFIX = {"OLD":"_old", "NEW":"_new"}
     __IMGSUFIX = ".jpg"
     __LOGFILE = ""
+    VERSAO = "v0.0.3c4"
 
 
     #PROCESSED_FILES_TMP = ["0011597f-62ee-4b34-8d68-51f42dcd9449.mp4", "0074fad0-84f2-4b3c-9d46-6a3997b69167.mp4"] 
@@ -83,6 +89,7 @@ class compLaudo:
         self.__LOGFILE = self.DIR_LAUDO+"/compLaudoLOG.txt"
         with open(self.__LOGFILE, "w") as f:
             print()
+        self.__writeLog("compLaudo versão "+self.VERSAO)
         self.__writeLog("Iniciando processamento de ---> "+self.DIR_LAUDO )
         self.__ALLFILES = [file for file in glob.glob(self.DIR_LAUDO+"/**", recursive=True)]
         self.__writeLog("Númeto Total de Arquivos = "+ str(len(self.__ALLFILES)))
@@ -104,7 +111,6 @@ class compLaudo:
                 retval = int (fields[1])
                 break
     #    p.wait()
-        print (" => "+str(retval))
         return retval
     
     def getExt(self, arq):
@@ -171,10 +177,11 @@ class compLaudo:
     def resizeImg(self, imagem):
         if os.stat(imagem).st_size > 100000:
              outputpars = "-loglevel panic -y -vf scale=800:-1"
-             newImg = os.path.splitext(imagem)[0]+self.__TEMPSUFIX["NEW"]+self.__IMGSUFIX 
+             newImg = os.path.splitext(imagem)[0]+self.__TEMPSUFIX["NEW"]+self.__IMGSUFIX
+             string_ffmpeg = 'ffmpeg -i "'+imagem+'" '+outputpars+' "'+newImg+'"'
              try: 
-                 ff = ffmpy.FFmpeg(inputs={imagem:None}, outputs={newImg:outputpars})
-                 ff.run()
+                 p = subprocess.Popen(string_ffmpeg, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                 p.wait()
                  os.rename(imagem, imagem+self.__TEMPSUFIX["OLD"])
                  os.rename(newImg, os.path.splitext(imagem)[0]+self.__IMGSUFIX)
                  os.remove(imagem+self.__TEMPSUFIX["OLD"])
@@ -187,11 +194,12 @@ class compLaudo:
              self.__writeLog("Convertendo de: "+videofile+" para "+videoThumbs)
              nFrames = self.getNumFrames(videofile)
              if nFrames > (self.THUMBS_X * self.THUMBS_Y):
-                 outputpars = '-loglevel panic -y -vf "select=not(mod(n\,'+str(nFrames // 25) 
-                 outputpars+= ')),scale=320:240,tile='+str(self.THUMBS_X)+'+'+str(self.THUMBS_Y)+'" -frames 1' 
+                 outputpars = ' -loglevel panic -y -vf "select=not(mod(n\,'+str(nFrames // 25) 
+                 outputpars+= ')),scale=320:240,tile='+str(self.THUMBS_X)+'+'+str(self.THUMBS_Y)+'" -frames 1'
+                 string_ffmpeg = 'ffmpeg -i "'+videofile+'"'+outputpars +' "'+videoThumbs +'" ' 
                  try: 
-                     ff = ffmpy.FFmpeg(inputs={videofile:None}, outputs={videoThumbs:outputpars})
-                     ff.run()
+                     p = subprocess.Popen(string_ffmpeg, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                     p.wait()
                      os.remove(videofile)
                      video_e_parent = ("/"+os.path.split(os.path.split(videofile)[0])[1]+"/"+ os.path.split(os.path.abspath(videofile))[1]).upper()
                      self.PROCESSED_VIDEO_FILES.append(video_e_parent)
