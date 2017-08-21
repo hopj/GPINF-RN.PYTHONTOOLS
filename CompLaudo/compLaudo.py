@@ -37,7 +37,10 @@ compLaudo v0.0.3c4
             - é preciso fazer todos os testes novamente.
         - Escreve a versão do compLaudo no log. 
 
-compLaudo v0.0.3d (futuro)
+compLaudo v0.0.4a
+        - Modificar o compLaudo para utilizar multiprocessing
+
+compLaudo v0.0.xx (futuro)
         - LOG: escrever qual a pasta de imagens esta sendo processada
         - LOG: escrever "X% das imagens processadas" no log.
         - LOG: inserir a string "processando video x/total - video_atual..." 
@@ -60,6 +63,9 @@ import shutil
 from bs4 import BeautifulSoup
 from shutil import copy2
 from _operator import contains
+
+import itertools
+from itertools import zip_longest, _grouper
 
 class compLaudo:
     THUMBS_X = 5
@@ -260,8 +266,50 @@ if len(sys.argv) < 2:
     print ("uso: python + diretório de entrada + argumentos")
     sys.exit(1)
 
-cl = compLaudo(sys.argv[1])
-cl.process(sys.argv)
+#cl = compLaudo(sys.argv[1])
+#cl.process(sys.argv)
+
+l1 = ["a",
+      "b",
+      "c",
+      "d",
+      "e",
+      "f",
+      "g"
+      "h"
+      "i"
+      "j"
+      "k",
+      "l"]
+l = iter(l1)
+#l = list(l1)
+
+#for i1, i2 in zip_longest(l, l):
+#for i1, i2, i3,i4 in zip_longest(l,l,l,l):
+
+
+
+def list_div(list, num, fill):
+    result = [iter(list)]*num
+    return zip_longest(fillvalue=fill, *result)
+
+def list_div4(list):
+    for i in range(len(list)):
+        if i < len(list)-4:
+            yield list[i], list[i+1], list[i+2], list[i+3]
+        elif i < len(list)-3:
+            yield list[i], list[i+1], list[i+2], null
+        elif i < len(list)-2:
+            yield list[i], list[i+1], null, null            
+        elif i < len(list)-1:
+            yield list[i], null, null, null
+         
+#for i1, i2, i3, i4 in list_div4(l):
+#    print(i1+" "+i2+" "+i3+" "+i4)
+
+for i1, i2, i3, i4 in list_div4(l):
+    print(i1+" "+i2+" "+i3+" "+i4)
+    print()
 
 
 '''
