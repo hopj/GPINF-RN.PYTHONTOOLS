@@ -60,12 +60,35 @@ import os
 import subprocess
 import datetime
 import shutil
+import multiprocessing
 from bs4 import BeautifulSoup
 from shutil import copy2
 from _operator import contains
 
 import itertools
 from itertools import zip_longest, _grouper
+from _overlapped import NULL
+
+class sublist:
+
+    def __init__(self, list, slice_number ):
+        self.list = list
+        self.slice_number = slice_number
+        self.num_lists = len(self.list)//self.slice_number
+        if len(self.list) % self.slice_number >0:
+            self.last_list_with_all_items = self.num_lists-1
+        else:
+            self.last_list_with_all_items = self.num_lists
+    
+    
+    def __iter__(self):
+        i=0
+        while i <= len(self.list):
+            result = self.list[i:i+self.slice_number]
+            i+=self.slice_number
+            yield resul
+
+
 
 class compLaudo:
     THUMBS_X = 5
@@ -261,26 +284,94 @@ class compLaudo:
 
         self.__writeLog("Finalizado processamento de "+self.DIR_LAUDO )
 
+
+    def process_multi(self, args, n_process):
+        
+        self.__writeLog("Inicio da varredura dos arquivos e seleção de: VIDEOS, IMAGENS e HTMLs")
+        for arquivo in self.__ALLFILES:
+            ext = os.path.splitext(arquivo)[1][1:].upper()
+            if os.path.isfile(arquivo):                          
+                if ext in self.VIDEO_TYPES and os.stat(arquivo).st_size > 500000: 
+                    self.VIDEO_FILES.append(arquivo)
+                elif ext in self.IMG_TYPES and os.stat(arquivo).st_size > 100000:
+                    self.IMG_FILES.append(arquivo)
+                elif ext in self.HTML_TYPES:
+                    self.HTML_PAGES.append(arquivo)
+
+        self.__writeLog("Número Total de videos: "+str(len(self.VIDEO_FILES)))
+        self.__writeLog("Número Total de imagens: "+str(len(self.IMG_FILES)))
+
+
+        pool = multiprocessing.Pool(n_process)
+        if self.FLAGS["VIDEO"] in args:
+            self.__writeLog("############################# Inicio da geração dos thumbs dos videos ############################# ")
+            try: 
+                r = [pool.apply_async(self.geraThumb, args=(video)) for video in self.VIDEO_FILES]
+                output = [p.get() for p in r]
+                pool.terminate()                                
+            except:
+                self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))                            
+
+        if self.FLAGS["HTML"] in args:
+            self.__writeLog("############################# Inicio do processamento dos arquivos HTML ############################# ")
+            for pag in self.HTML_PAGES:
+                try:
+                    self.processa_HTML_videos(pag)
+                    os.rename(pag, pag+self.__TEMPSUFIX["OLD"])
+                    os.rename(pag+self.__TEMPSUFIX["NEW"]+".html", pag)
+                    os.remove(pag+self.__TEMPSUFIX["OLD"])
+                except:
+                    self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
+                    continue                              
+       
+        if self.FLAGS["IMAGEM"] in args:                
+            self.__writeLog("############################# Inicio do resize das imagens ############################# ")
+            for img in self.IMG_FILES:
+                try: 
+                    self.__writeLog("Fazendo resize de : "+img)
+                    self.resizeImg(img)                
+                except:
+                    self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
+                    continue                            
+
+        self.__writeLog("Finalizado processamento de "+self.DIR_LAUDO )
+
                               
 if len(sys.argv) < 2:
     print ("uso: python + diretório de entrada + argumentos")
     sys.exit(1)
 
-#cl = compLaudo(sys.argv[1])
+cl = compLaudo(sys.argv[1])
 #cl.process(sys.argv)
+cl.process_multi(sys.argv, multiprocessing.cpu_count()-1)
 
-l1 = ["a",
-      "b",
-      "c",
-      "d",
-      "e",
+
+'''
+--------------- TESTES PASSADOS. CÓDIGO A APAGAR (LIXO) -------------------
+
+----------------------------------------------
+r = [pool.apply_async(function_name, args=(function_arg1, function_arg2)) for i in iterable]
+output = [p.get() for p in r]
+pool.terminate()
+
+for l_videos in sublist(self.VIDEO_FILES):
+for video in l_videos:
+----------------------------------------------
+
+
+
+l1 = ["aaaaaaaaaaaa",
+      "bbbbb",
+      "ccccccccccccccccccccccccc",
+      "ddd",
+      "eeeeeeeEEEE",
       "f",
-      "g"
-      "h"
-      "i"
-      "j"
-      "k",
-      "l"]
+      "gggg",
+      "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+      "iiiiiiiii",
+      "jj",
+      "kkkkkkkkkkkkkk",
+      "llllllll"]
 l = iter(l1)
 #l = list(l1)
 
@@ -289,30 +380,19 @@ l = iter(l1)
 
 
 
-def list_div(list, num, fill):
+#for l in sublist(l1,4):
+#    print(l)
+
+
+def list_div(list, num):
     result = [iter(list)]*num
-    return zip_longest(fillvalue=fill, *result)
-
-def list_div4(list):
-    for i in range(len(list)):
-        if i < len(list)-4:
-            yield list[i], list[i+1], list[i+2], list[i+3]
-        elif i < len(list)-3:
-            yield list[i], list[i+1], list[i+2], null
-        elif i < len(list)-2:
-            yield list[i], list[i+1], null, null            
-        elif i < len(list)-1:
-            yield list[i], null, null, null
-         
-#for i1, i2, i3, i4 in list_div4(l):
-#    print(i1+" "+i2+" "+i3+" "+i4)
-
-for i1, i2, i3, i4 in list_div4(l):
-    print(i1+" "+i2+" "+i3+" "+i4)
-    print()
+    return zip_longest(fillvalue=NULL, *result)
 
 
-'''
+for i in list_div(l,3):
+    print(i)
+
+
 
 flagvideo = ""
 flaghtml = ""
