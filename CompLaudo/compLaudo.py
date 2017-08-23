@@ -37,7 +37,7 @@ compLaudo v0.0.3c4
             - é preciso fazer todos os testes novamente.
         - Escreve a versão do compLaudo no log. 
 
-compLaudo v0.0.4a
+compLaudo v0.0.4a-alfa
         - Modificar o compLaudo para utilizar multiprocessing
 
 compLaudo v0.0.xx (futuro)
@@ -73,20 +73,14 @@ class sublist:
 
     def __init__(self, list, slice_number ):
         self.list = list
-        self.slice_number = slice_number
-        self.num_lists = len(self.list)//self.slice_number
-        if len(self.list) % self.slice_number >0:
-            self.last_list_with_all_items = self.num_lists-1
-        else:
-            self.last_list_with_all_items = self.num_lists
-    
+        self.slice_number = slice_number    
     
     def __iter__(self):
         i=0
         while i <= len(self.list):
             result = self.list[i:i+self.slice_number]
             i+=self.slice_number
-            yield resul
+            yield result
 
 
 
@@ -208,6 +202,7 @@ class compLaudo:
              outputpars = "-loglevel panic -y -vf scale=800:-1"
              newImg = os.path.splitext(imagem)[0]+self.__TEMPSUFIX["NEW"]+self.__IMGSUFIX
              string_ffmpeg = 'ffmpeg -i "'+imagem+'" '+outputpars+' "'+newImg+'"'
+             self.__writeLog("Fazendo resize de : "+imagem)             
              try: 
                  p = subprocess.Popen(string_ffmpeg, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
                  p.wait()
@@ -276,7 +271,6 @@ class compLaudo:
             self.__writeLog("############################# Inicio do resize das imagens ############################# ")
             for img in self.IMG_FILES:
                 try: 
-                    self.__writeLog("Fazendo resize de : "+img)
                     self.resizeImg(img)                
                 except:
                     self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
@@ -301,14 +295,13 @@ class compLaudo:
         self.__writeLog("Número Total de videos: "+str(len(self.VIDEO_FILES)))
         self.__writeLog("Número Total de imagens: "+str(len(self.IMG_FILES)))
 
-
+        self.__writeLog("Multiprocessing com " + str(n_process) + " processos simultâneos")
         pool = multiprocessing.Pool(n_process)
         if self.FLAGS["VIDEO"] in args:
             self.__writeLog("############################# Inicio da geração dos thumbs dos videos ############################# ")
             try: 
-                r = [pool.apply_async(self.geraThumb, args=(video)) for video in self.VIDEO_FILES]
-                output = [p.get() for p in r]
-                pool.terminate()                                
+                r = [pool.apply_async(self.geraThumb, args=(video,)) for video in self.VIDEO_FILES]
+                output = [p.get() for p in r]                                                
             except:
                 self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))                            
 
@@ -326,116 +319,24 @@ class compLaudo:
        
         if self.FLAGS["IMAGEM"] in args:                
             self.__writeLog("############################# Inicio do resize das imagens ############################# ")
-            for img in self.IMG_FILES:
-                try: 
-                    self.__writeLog("Fazendo resize de : "+img)
-                    self.resizeImg(img)                
-                except:
-                    self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))
-                    continue                            
+            try:
+                r = [pool.apply_async(self.resizeImg, args=(img,)) for img in self.IMG_FILES]
+                output = [p.get() for p in r]                                                
+            except:
+                self.__writeLog("Erro no processamento:  "+ str(sys.exc_info()))                            
 
+        pool.terminate()
         self.__writeLog("Finalizado processamento de "+self.DIR_LAUDO )
 
-                              
-if len(sys.argv) < 2:
-    print ("uso: python + diretório de entrada + argumentos")
-    sys.exit(1)
 
-cl = compLaudo(sys.argv[1])
-#cl.process(sys.argv)
-cl.process_multi(sys.argv, multiprocessing.cpu_count()-1)
-
-
-'''
---------------- TESTES PASSADOS. CÓDIGO A APAGAR (LIXO) -------------------
-
-----------------------------------------------
-r = [pool.apply_async(function_name, args=(function_arg1, function_arg2)) for i in iterable]
-output = [p.get() for p in r]
-pool.terminate()
-
-for l_videos in sublist(self.VIDEO_FILES):
-for video in l_videos:
-----------------------------------------------
-
-
-
-l1 = ["aaaaaaaaaaaa",
-      "bbbbb",
-      "ccccccccccccccccccccccccc",
-      "ddd",
-      "eeeeeeeEEEE",
-      "f",
-      "gggg",
-      "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
-      "iiiiiiiii",
-      "jj",
-      "kkkkkkkkkkkkkk",
-      "llllllll"]
-l = iter(l1)
-#l = list(l1)
-
-#for i1, i2 in zip_longest(l, l):
-#for i1, i2, i3,i4 in zip_longest(l,l,l,l):
-
-
-
-#for l in sublist(l1,4):
-#    print(l)
-
-
-def list_div(list, num):
-    result = [iter(list)]*num
-    return zip_longest(fillvalue=NULL, *result)
-
-
-for i in list_div(l,3):
-    print(i)
-
-
-
-flagvideo = ""
-flaghtml = ""
-flagimagem = ""
-                
-argumentos = []
-
-if "-v" in sys.argv:
-    argumentos.append(cl.FLAGS["VIDEO"]) 
+if __name__ == '__main__':                                 
+    if len(sys.argv) < 2:
+        print ("uso: python + diretório de entrada + argumentos")
+        sys.exit(1)
     
-if "-h" in sys.argv:
-    argumentos.append(cl.FLAGS["HTML"] 
-
-if "-i" in sys.argv:
-    argumentos.append(cl.FLAGS["IMAGEM"] 
-
-------------------------------------------------------
-
-str1 = "file:///F:/HAM/OneDrive/14%20-%20DESENV/TESTES/LAUDO_TESTE-micro/files/Video/0011597f-62ee-4b34-8d68-51f42dcd9449.mp4"
-arq = os.path.split(os.path.abspath(str1))[1]
-pasta = os.path.split(os.path.split(str1)[0])[1]
-
-r = "/" + pasta +"/"+ arq
-
-print(r)
-'''
-'''
-
-                Parada para debug
-                    if os.path.basename(filename) == "IMG_3768.MOV":
-                        print("Parada para Debug")
+    cl = compLaudo(sys.argv[1])
+    #cl.process_multi(sys.argv, multiprocessing.cpu_count()-2)
+    #cl.process_multi(sys.argv, 5)
+    cl.process(sys.argv)
 
 
-                if ext in self.VIDEO_TYPES:
-                    path = os.path.dirname(os.path.abspath(arquivo))                     
-                    if path  not in self.PASTAS_VIDEO: 
-                        self.PASTAS_VIDEO.append(path)                                        
-
-
-            for pasta in self.PASTAS_VIDEO:
-                self.geraThumbsPasta(pasta, pasta+self.__TEMPSUFIX["NEW"])
-                os.rename(pasta, pasta+self.__TEMPSUFIX["OLD"])
-                os.rename(pasta+self.__TEMPSUFIX["NEW"], pasta)
-                shutil.rmtree(pasta+self.__TEMPSUFIX["OLD"], ignore_errors=False, onerror=None)
-
-'''
